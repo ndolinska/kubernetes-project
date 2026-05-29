@@ -1,93 +1,30 @@
-# project-n-dolinska-215-1ffe
+# Projekt
 
-Project execution for n.dolinska.215@studms.ug.edu.pl
+<p class="editor-paragraph mb-2" dir="ltr"><span style="white-space: pre-wrap;">Przygotuj aplikację wieloserwisową uruchamianą w Kubernetes oraz wdrażaną przez GitHub Actions. Funkcjonalność aplikacji ma być ograniczona i pomocnicza; oceniana jest przede wszystkim architektura wdrożeniowa w klastrze oraz automatyzacja CI/CD.</span></p>
 
-## Getting started
+## Opis Wyzwania
+<p class="editor-paragraph mb-2" dir="ltr"><b><strong class="editor-text-bold font-bold" style="white-space: pre-wrap;">Projekt Kubernetes — aplikacja wieloserwisowa z CI/CD</strong></b></p><p class="editor-paragraph mb-2" dir="ltr"><span style="white-space: pre-wrap;">Projekt polega na przygotowaniu działającej aplikacji wieloserwisowej uruchamianej w </span><code spellcheck="false" style="white-space: pre-wrap;"><span class="editor-text-code bg-muted px-1 py-0.5 rounded font-mono text-sm">Kubernetes</span></code><span style="white-space: pre-wrap;"> oraz wdrażanej przez pipeline </span><code spellcheck="false" style="white-space: pre-wrap;"><span class="editor-text-code bg-muted px-1 py-0.5 rounded font-mono text-sm">CI/CD</span></code><span style="white-space: pre-wrap;"> w </span><code spellcheck="false" style="white-space: pre-wrap;"><span class="editor-text-code bg-muted px-1 py-0.5 rounded font-mono text-sm">GitHub Actions</span></code><span style="white-space: pre-wrap;">. Wariant Kubernetes jest trudniejszy od wariantu Docker: wymaga manifestów klastra, trwałego storage, Ingressa, sond, limitów zasobów, securityContext i automatycznego wdrożenia.</span></p><p class="editor-paragraph mb-2" dir="ltr"><span style="white-space: pre-wrap;">Projekt powinien dać się sprawdzić w około 20 minut na osobę. Repozytorium musi zawierać </span><code spellcheck="false" style="white-space: pre-wrap;"><span class="editor-text-code bg-muted px-1 py-0.5 rounded font-mono text-sm">CHECKLIST.md</span></code><span style="white-space: pre-wrap;"> z instrukcją uruchomienia na kind, minikube albo k3d, listą zasobów Kubernetes, komendami kubectl, przykładowymi wynikami i linkiem do ostatniego udanego workflow GitHub Actions.</span></p><p class="editor-paragraph mb-2"><br></p>
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Kryteria Oceny
+Całkowita liczba punktów: 40
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+| Wymaganie | Opis | Waga |
+|-----------|------|------|
+| Wymaganie | Projekt zawiera katalog k8s/ albo Helm/Kustomize. Manifesty obejmują minimum: Namespace, Deployment, StatefulSet lub równoważny zasób dla bazy, Service, Ingress, ConfigMap, Secret, PVC. | 12% |
+| Wymaganie | Frontend/API/worker działają jako Deployment. Backend ma minimum 2 repliki i strategię aktualizacji rolling update. Sprawdzenie: kubectl get deploy i kubectl rollout status. | 10% |
+| Wymaganie | Baza danych działa jako StatefulSet albo przez jasno uzasadniony zasób zapewniający trwałość. Musi używać PersistentVolumeClaim. | 12% |
+| Wymaganie | Komunikacja wewnętrzna odbywa się przez Service. Ruch zewnętrzny przechodzi przez Ingress. Baza danych, cache i worker nie są wystawione na zewnątrz klastra. | 10% |
+| Wymaganie | Konfiguracja niepoufna jest w ConfigMap, a dane poufne w Secret. Hasła i tokeny nie mogą być zapisane jawnie w kodzie aplikacji ani w README jako prawdziwe wartości produkcyjne. | 8% |
+| Wymaganie | Główne kontenery mają readinessProbe i livenessProbe oraz ustawione resources.requests i resources.limits. Sprawdzenie: szybka analiza manifestów i kubectl describe pod. | 10% |
+| Wymaganie | Kontenery aplikacyjne działają jako non-root i mają podstawowy securityContext. Projekt używa initContainer albo Job do migracji bazy, inicjalizacji danych lub oczekiwania na zależności. | 8% |
+| Wymaganie | Repozytorium zawiera workflow, który buduje obraz, uruchamia testy lub podstawową walidację, publikuje obraz do rejestru i wykonuje deploy przez kubectl, Helm albo Kustomize. Workflow sprawdza rollout po wdrożeniu. | 10% |
+| Wymaganie | Projekt definiuje NetworkPolicy, które ograniczają ruch między podami, np. baza przyjmuje ruch tylko z backendu lub workera. | 2.5% |
+| Wymaganie | Dla backendu dodano PodDisruptionBudget, który chroni minimalną dostępność replik podczas aktualizacji lub prac utrzymaniowych klastra. | 2.5% |
+| Wymaganie | Projekt używa Helm albo Kustomize do parametryzacji manifestów i obsługuje minimum dwa środowiska, np. dev i prod. | 2.5% |
+| Wymaganie | Aplikacja udostępnia /metrics, adnotacje dla Prometheusa albo inną prostą formę obserwowalności oraz instrukcję sprawdzenia metryk/logów. | 2.5% |
+| Wymaganie | Aplikacja ma jeden główny zasób biznesowy i obsługuje co najmniej dodanie danych, odczyt danych oraz endpoint /health lub /ready. Sprawdzenie: 2-3 komendy curl po wdrożeniu. | 10% |
+| Wymaganie | Dane aplikacji są zapisywane w bazie danych działającej w Kubernetes i pozostają dostępne po restarcie poda bazy. Sprawdzenie: dodać rekord, usunąć pod bazy, odczytać rekord po odtworzeniu poda. | 5% |
+| Wymaganie | Projekt zawiera dodatkowy komponent architektury, np. Redis, RabbitMQ albo worker. Musi być prosty dowód działania w CHECKLIST.md. | 5% |
 
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.com/ug_technologie_chmurowe/25-26_projekt/project-n-dolinska-215-1ffe.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-* [Set up project integrations](https://gitlab.com/ug_technologie_chmurowe/25-26_projekt/project-n-dolinska-215-1ffe/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## Zgłoszenie Rozwiązania
+Proszę zaimplementować swoje rozwiązanie w tym repozytorium. Kiedy będziesz gotowy, prześlij link do tego repozytorium na platformie Cursora (cursora.org).
