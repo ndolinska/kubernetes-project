@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Zmienne środowiskowe — nigdy nie commituj prawdziwych sekretów
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kubernetes — lokalne pliki kubeconfig
+kubeconfig
+*.kubeconfig
