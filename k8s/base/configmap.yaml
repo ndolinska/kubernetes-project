@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tasks-config
+  namespace: tasks
+data:
+  # Adres serwisu PostgreSQL wewnątrz klastra
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "tasksdb"
+  DB_USER: "tasks"
+  # Adres serwisu Redis wewnątrz klastra
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
