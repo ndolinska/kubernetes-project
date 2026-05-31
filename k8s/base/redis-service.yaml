@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis          # adres DNS wewnątrz klastra: redis.tasks.svc.cluster.local
+  namespace: tasks
+spec:
+  type: ClusterIP      # tylko wewnątrz klastra — worker i API mogą się połączyć, świat zewnętrzny nie
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379

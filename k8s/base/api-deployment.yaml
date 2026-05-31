@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: tasks
+spec:
+  replicas: 2          # minimum 2 repliki — wymaganie projektu
+  selector:
+    matchLabels:
+      app: api
+  # Rolling update — K8s podmienia pody jeden po drugim, nie wyłączając całego serwisu
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # ile nowych podów może powstać ponad docelową liczbę podczas update
+      maxUnavailable: 0  # żaden pod nie może być niedostępny podczas update
+
+  template:
+    metadata:
+      labels:
+        app: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8000"
+    spec:
+      securityContext:
+        runAsUser: 1000    # appuser stworzony w Dockerfile (adduser)
+        runAsGroup: 1000
+        runAsNonRoot: true # K8s odmówi uruchomienia jeśli obraz próbuje startować jako root
+
+      # InitContainer czeka aż PostgreSQL będzie gotowy zanim API spróbuje się połączyć
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "Czekam na PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL gotowy."
+
+      containers:
+        - name: api
+          image: ndolinska/tasks-api:latest
+          # IfNotPresent — użyj lokalnego obrazu jeśli istnieje, pobierz z registry jeśli nie
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+
+          # Zmienne z ConfigMap
+          envFrom:
+            - configMapRef:
+                name: tasks-config
+          # Hasło z Secret doczepione osobno
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tasks-secret
+                  key: DB_PASSWORD
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+          securityContext:
+            allowPrivilegeEscalation: false  # kontener nie może podnieść uprawnień
