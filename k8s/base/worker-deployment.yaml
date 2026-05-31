@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: tasks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+
+      # InitContainer czeka aż Redis będzie gotowy zanim worker zacznie nasłuchiwać
+      initContainers:
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z redis 6379; do
+                echo "Czekam na Redis..."
+                sleep 2
+              done
+              echo "Redis gotowy."
+
+      containers:
+        - name: worker
+          image: ndolinska/tasks-worker:latest
+          imagePullPolicy: IfNotPresent
+
+          # Worker potrzebuje tylko danych Redis z ConfigMap
+          env:
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: tasks-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: tasks-config
+                  key: REDIS_PORT
+
+          # Liveness — sprawdza czy proces pythona worker.py nadal działa
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", "worker.py"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+
+          # Readiness — sprawdza połączenie z Redis przez nc
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "nc -z redis 6379"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+
+          securityContext:
+            allowPrivilegeEscalation: false
