@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: tasks
+spec:
+  # Jeśli Job się nie uda, spróbuj maksymalnie 3 razy
+  backoffLimit: 3
+  template:
+    spec:
+      # Job nigdy nie jest restartowany po zakończeniu (czy sukcesie czy porażce po backoffLimit)
+      restartPolicy: OnFailure
+
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+
+      # Czeka aż PostgreSQL będzie gotowy zanim odpali migrację
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "Czekam na PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL gotowy — startuję migrację."
+
+      containers:
+        - name: migration
+          image: ndolinska/tasks-api:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "migrate.py"]
+
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tasks-secret
+                  key: DB_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: tasks-config
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
