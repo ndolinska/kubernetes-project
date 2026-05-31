@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: tasks
+spec:
+  serviceName: "postgres"   # musi zgadzać się z nazwą Service poniżej
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      # Uruchamiamy jako użytkownik postgres (uid 999) — non-root, wymagane przez K8s
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999          # fsGroup zapewnia że wolumin jest dostępny dla grupy 999
+
+      # InitContainer naprawia uprawnienia katalogu danych zanim postgres wystartuje.
+      # Musi działać jako root (uid 0) — postgres nie może sam zmienić uprawnień katalogu.
+      initContainers:
+        - name: fix-data-permissions
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 999:999 /var/lib/postgresql/data"]
+          # Nadpisujemy pod-level securityContext — initContainer musi działać jako root
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+
+          # Zmienne środowiskowe: niepoufne z ConfigMap, hasło z Secret
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: tasks-config
+                  key: DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: tasks-config
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tasks-secret
+                  key: DB_PASSWORD
+
+          # Montujemy wolumin w katalogu danych PostgreSQL
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+          # Readiness — K8s nie puści ruchu do poda dopóki baza nie jest gotowa
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "tasks", "-d", "tasksdb"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 6
+
+          # Liveness — K8s restartuje pod jeśli baza przestaje odpowiadać
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "tasks", "-d", "tasksdb"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Limity zasobów — bez tego pod może zająć cały klaster
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+  # PVC tworzony automatycznie dla każdego poda — dane przeżywają restart
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]   # dysk dostępny dla jednego poda na raz
+        resources:
+          requests:
+            storage: 1Gi
