@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+  namespace: tasks
+spec:
+  # Podczas dobrowolnych zakłóceń (np. drain węzła) co najmniej 1 pod API musi działać
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api
