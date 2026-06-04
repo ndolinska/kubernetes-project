@@ -120,6 +120,7 @@ jobs:
           kubectl apply -f k8s/base/ingress.yaml
           kubectl apply -f k8s/base/network-policy-postgres.yaml
           kubectl apply -f k8s/base/network-policy-redis.yaml
+          kubectl apply -f k8s/base/api-pdb.yaml
 
       - name: Poczekaj na zakończenie migracji bazy
         run: |
