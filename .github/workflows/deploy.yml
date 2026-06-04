@@ -104,23 +104,8 @@ jobs:
             --selector=app.kubernetes.io/component=controller \
             --timeout=90s
 
-      - name: Zastosuj manifesty K8s
-        run: |
-          kubectl apply -f k8s/base/namespace.yaml
-          kubectl apply -f k8s/base/configmap.yaml
-          kubectl apply -f k8s/base/secret.yaml
-          kubectl apply -f k8s/base/postgres-service.yaml
-          kubectl apply -f k8s/base/postgres-statefulset.yaml
-          kubectl apply -f k8s/base/redis-service.yaml
-          kubectl apply -f k8s/base/redis-deployment.yaml
-          kubectl apply -f k8s/base/migration-job.yaml
-          kubectl apply -f k8s/base/api-service.yaml
-          kubectl apply -f k8s/base/api-deployment.yaml
-          kubectl apply -f k8s/base/worker-deployment.yaml
-          kubectl apply -f k8s/base/ingress.yaml
-          kubectl apply -f k8s/base/network-policy-postgres.yaml
-          kubectl apply -f k8s/base/network-policy-redis.yaml
-          kubectl apply -f k8s/base/api-pdb.yaml
+      - name: Zastosuj manifesty K8s (Kustomize dev)
+        run: kubectl apply -k k8s/overlays/dev
 
       - name: Poczekaj na zakończenie migracji bazy
         run: |

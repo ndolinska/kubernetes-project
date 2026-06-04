@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Demonstarcja: Na produkcji używamy konkretnego tagu obrazu (nie latest) — dla powtarzalności wdrożeń
+# Tutaj zostawimy latest w ramach testu
+images:
+  - name: ndolinska/tasks-api
+    newTag: "latest"   
+  - name: ndolinska/tasks-worker
+    newTag: "latest"
+
+# Patch — zwiększ liczbę replik API do 3 na produkcji
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: api
+        namespace: tasks
+      spec:
+        replicas: 3

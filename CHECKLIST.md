@@ -37,19 +37,14 @@ kubectl wait --namespace ingress-nginx \
 
 ## 3. Zastosuj manifesty Kubernetes
 
+Projekt używa Kustomize — jedna komenda zastępuje ręczne aplikowanie każdego pliku:
+
 ```bash
-kubectl apply -f k8s/base/namespace.yaml
-kubectl apply -f k8s/base/configmap.yaml
-kubectl apply -f k8s/base/secret.yaml
-kubectl apply -f k8s/base/postgres-service.yaml
-kubectl apply -f k8s/base/postgres-statefulset.yaml
-kubectl apply -f k8s/base/redis-service.yaml
-kubectl apply -f k8s/base/redis-deployment.yaml
-kubectl apply -f k8s/base/migration-job.yaml
-kubectl apply -f k8s/base/api-service.yaml
-kubectl apply -f k8s/base/api-deployment.yaml
-kubectl apply -f k8s/base/worker-deployment.yaml
-kubectl apply -f k8s/base/ingress.yaml
+# Środowisko dev (kind, lokalnie)
+kubectl apply -k k8s/overlays/dev
+
+# Środowisko prod (więcej replik, konkretny tag obrazu)
+kubectl apply -k k8s/overlays/prod
 ```
 
 ---
@@ -183,6 +178,6 @@ Workflow `.github/workflows/deploy.yml` uruchamia się automatycznie przy każdy
 
 **Wymagane sekrety w ustawieniach repozytorium (Settings → Secrets → Actions):**
 - `DOCKERHUB_USERNAME` — login Docker Hub
-- `DOCKERHUB_TOKEN` — token dostępu (nie hasło, wygeneruj na hub.docker.com → Account Settings → Security → Access Tokens)
+- `DOCKERHUB_TOKEN` — token dostępu
 
 **Link do workflow:** [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
