@@ -31,6 +31,9 @@ jobs:
           python -m py_compile worker/worker.py
           echo "Składnia OK"
 
+      - name: Zainstaluj PyYAML
+        run: pip install pyyaml
+
       - name: Sprawdź czy manifesty K8s są poprawnymi plikami YAML
         run: |
           python -c "
