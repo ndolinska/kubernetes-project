@@ -3,10 +3,13 @@ kind: Service
 metadata:
   name: api
   namespace: tasks
+  labels:
+    app: api        # etykieta potrzebna dla ServiceMonitor Prometheusa
 spec:
   type: ClusterIP
   selector:
     app: api        # kieruje ruch do podów z etykietą app=api
   ports:
-    - port: 80      # port serwisu wewnątrz klastra
+    - name: http    # nazwa portu potrzebna dla ServiceMonitor Prometheusa
+      port: 80      # port serwisu wewnątrz klastra
       targetPort: 8000  # port kontenera API

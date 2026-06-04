@@ -167,6 +167,43 @@ kind delete cluster --name tasks-cluster
 
 ---
 
+## Metryki Prometheus
+
+API wystawia metryki w formacie Prometheus pod endpointem `/metrics`.
+
+### Dostępne metryki
+
+- `http_requests_total` — licznik wszystkich requestów HTTP do API (etykiety: `method`, `endpoint`, `status`)
+- standardowe metryki procesu Python (użycie CPU, pamięci itp.) dodawane automatycznie przez bibliotekę `prometheus-client`
+
+### Jak sprawdzić metryki
+
+```bash
+curl http://tasks.local/metrics
+```
+
+Fragment przykładowego wyjścia:
+```
+# HELP http_requests_total Liczba requestów HTTP
+# TYPE http_requests_total counter
+http_requests_total{endpoint="/tasks/",method="GET",status="200"} 3.0
+http_requests_total{endpoint="/tasks/",method="POST",status="200"} 1.0
+```
+
+### Adnotacje na podach
+
+Pody API i Redis mają adnotacje umożliwiające automatyczny scraping przez Prometheusa:
+
+```yaml
+prometheus.io/scrape: "true"
+prometheus.io/path: "/metrics"
+prometheus.io/port: "8000"
+```
+
+Dzięki nim Prometheus (jeśli zainstalowany w klastrze) automatycznie wykryje i będzie odpytywał te pody bez dodatkowej konfiguracji.
+
+---
+
 ## CI/CD — GitHub Actions
 
 Workflow `.github/workflows/deploy.yml` uruchamia się automatycznie przy każdym pushu na `main` i PR-ach.
