@@ -7,6 +7,10 @@ spec:
   # Jeśli Job się nie uda, spróbuj maksymalnie 3 razy
   backoffLimit: 3
   template:
+    metadata:
+      # Etykieta app=api pozwala NetworkPolicy na dostęp do PostgreSQL
+      labels:
+        app: api
     spec:
       # Job nigdy nie jest restartowany po zakończeniu (czy sukcesie czy porażce po backoffLimit)
       restartPolicy: OnFailure
@@ -33,7 +37,7 @@ spec:
       containers:
         - name: migration
           image: ndolinska/tasks-api:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["python", "migrate.py"]
 
           env:
