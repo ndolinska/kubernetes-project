@@ -35,7 +35,7 @@ spec:
       containers:
         - name: worker
           image: ndolinska/tasks-worker:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           # Worker potrzebuje tylko danych Redis z ConfigMap
           env:
@@ -58,10 +58,13 @@ spec:
             periodSeconds: 15
             failureThreshold: 3
 
-          # Readiness — sprawdza połączenie z Redis przez nc
+          # Readiness — sprawdza połączenie z Redis przez pythona (nc niedostępny w slim)
           readinessProbe:
             exec:
-              command: ["sh", "-c", "nc -z redis 6379"]
+              command:
+                - python
+                - -c
+                - "import socket; s=socket.socket(); s.connect(('redis', 6379)); s.close()"
             initialDelaySeconds: 5
             periodSeconds: 10
 

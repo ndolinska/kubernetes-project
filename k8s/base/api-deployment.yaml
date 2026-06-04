@@ -46,8 +46,8 @@ spec:
       containers:
         - name: api
           image: ndolinska/tasks-api:latest
-          # IfNotPresent — użyj lokalnego obrazu jeśli istnieje, pobierz z registry jeśli nie
-          imagePullPolicy: IfNotPresent
+          # Always — zawsze pobieraj najnowszy obraz z registry (ważne w CI)
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
 
