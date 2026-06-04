@@ -1,0 +1,134 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  API_IMAGE: ndolinska/tasks-api
+  WORKER_IMAGE: ndolinska/tasks-worker
+
+jobs:
+  # ── 1. Walidacja — działa na każdym PR i pushu ────────────────────────────
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sprawdź składnię Pythona
+        run: |
+          python -m py_compile api/main.py
+          python -m py_compile api/database.py
+          python -m py_compile api/routes.py
+          python -m py_compile api/migrate.py
+          python -m py_compile worker/worker.py
+          echo "Składnia OK"
+
+      - name: Sprawdź czy manifesty K8s są poprawnymi plikami YAML
+        run: |
+          python -c "
+          import yaml, glob, sys
+          files = glob.glob('k8s/**/*.yaml', recursive=True)
+          for f in files:
+              try:
+                  yaml.safe_load_all(open(f))
+                  print(f'OK: {f}')
+              except Exception as e:
+                  print(f'BŁĄD: {f}: {e}')
+                  sys.exit(1)
+          "
+
+  # ── 2. Build i push obrazów — tylko na main ───────────────────────────────
+  build-push:
+    name: Build & Push
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zaloguj się do Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Zbuduj i wypchnij obraz API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          push: true
+          # Tagujemy zarówno po SHA commita jak i latest
+          tags: |
+            ${{ env.API_IMAGE }}:latest
+            ${{ env.API_IMAGE }}:${{ github.sha }}
+
+      - name: Zbuduj i wypchnij obraz workera
+        uses: docker/build-push-action@v5
+        with:
+          context: ./worker
+          push: true
+          tags: |
+            ${{ env.WORKER_IMAGE }}:latest
+            ${{ env.WORKER_IMAGE }}:${{ github.sha }}
+
+  # ── 3. Deploy do klastra kind i weryfikacja ───────────────────────────────
+  deploy:
+    name: Deploy & Verify
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stwórz klaster kind
+        uses: helm/kind-action@v1
+        with:
+          config: kind-config.yaml
+          cluster_name: tasks-cluster
+
+      - name: Zainstaluj nginx ingress controller
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=90s
+
+      - name: Zastosuj manifesty K8s
+        run: |
+          kubectl apply -f k8s/base/namespace.yaml
+          kubectl apply -f k8s/base/configmap.yaml
+          kubectl apply -f k8s/base/secret.yaml
+          kubectl apply -f k8s/base/postgres-service.yaml
+          kubectl apply -f k8s/base/postgres-statefulset.yaml
+          kubectl apply -f k8s/base/redis-service.yaml
+          kubectl apply -f k8s/base/redis-deployment.yaml
+          kubectl apply -f k8s/base/migration-job.yaml
+          kubectl apply -f k8s/base/api-service.yaml
+          kubectl apply -f k8s/base/api-deployment.yaml
+          kubectl apply -f k8s/base/worker-deployment.yaml
+          kubectl apply -f k8s/base/ingress.yaml
+
+      - name: Poczekaj na zakończenie migracji bazy
+        run: |
+          kubectl wait --for=condition=complete job/db-migration \
+            -n tasks --timeout=120s
+
+      - name: Sprawdź rollout deploymentów
+        run: |
+          kubectl rollout status deployment/api -n tasks --timeout=180s
+          kubectl rollout status deployment/redis -n tasks --timeout=60s
+          kubectl rollout status deployment/worker -n tasks --timeout=120s
+
+      - name: Pokaż stan klastra po wdrożeniu
+        run: |
+          kubectl get pods -n tasks
+          kubectl get services -n tasks
+          kubectl get ingress -n tasks
