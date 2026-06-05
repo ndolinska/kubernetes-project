@@ -109,10 +109,13 @@ jobs:
       - name: Zainstaluj nginx ingress controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+          # Czekamy aż kontroler będzie gotowy — w tym webhook admission
           kubectl wait --namespace ingress-nginx \
             --for=condition=ready pod \
             --selector=app.kubernetes.io/component=controller \
             --timeout=90s
+          # Dodatkowe 10s żeby webhook zdążył się zarejestrować
+          sleep 10
 
       - name: Zastosuj manifesty K8s (Kustomize dev)
         run: kubectl apply -k k8s/overlays/dev
