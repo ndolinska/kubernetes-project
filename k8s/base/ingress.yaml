@@ -3,9 +3,8 @@ kind: Ingress
 metadata:
   name: api-ingress
   namespace: tasks
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
 spec:
+  ingressClassName: nginx
   rules:
     - host: tasks.local
       http:
