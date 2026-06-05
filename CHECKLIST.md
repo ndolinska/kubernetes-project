@@ -173,21 +173,14 @@ API wystawia metryki w formacie Prometheus pod endpointem `/metrics`.
 
 ### Dostępne metryki
 
-- `http_requests_total` — licznik wszystkich requestów HTTP do API (etykiety: `method`, `endpoint`, `status`)
+- `api_requests_total` — licznik wszystkich requestów HTTP do API (etykiety: `method`, `endpoint`)
+- `tasks_operations_total` — licznik operacji na zasobie tasks (etykieta: `operation`)
 - standardowe metryki procesu Python (użycie CPU, pamięci itp.) dodawane automatycznie przez bibliotekę `prometheus-client`
 
 ### Jak sprawdzić metryki
 
 ```bash
 curl http://tasks.local/metrics
-```
-
-Fragment przykładowego wyjścia:
-```
-# HELP http_requests_total Liczba requestów HTTP
-# TYPE http_requests_total counter
-http_requests_total{endpoint="/tasks/",method="GET",status="200"} 3.0
-http_requests_total{endpoint="/tasks/",method="POST",status="200"} 1.0
 ```
 
 ### Adnotacje na podach
