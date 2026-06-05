@@ -9,6 +9,7 @@ on:
 env:
   API_IMAGE: ndolinska/tasks-api
   WORKER_IMAGE: ndolinska/tasks-worker
+  FRONTEND_IMAGE: ndolinska/tasks-frontend
 
 jobs:
   # ── 1. Walidacja — działa na każdym PR i pushu ────────────────────────────
@@ -81,6 +82,15 @@ jobs:
           tags: |
             ${{ env.WORKER_IMAGE }}:latest
             ${{ env.WORKER_IMAGE }}:${{ github.sha }}
+
+      - name: Zbuduj i wypchnij obraz frontendu
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
   # ── 3. Deploy do klastra kind i weryfikacja ───────────────────────────────
   deploy:

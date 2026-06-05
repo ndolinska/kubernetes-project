@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tasks</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [tasks, setTasks]   = useState([]);
+      const [title, setTitle]   = useState("");
+      const [loading, setLoading] = useState(false);
+      const [error, setError]   = useState(null);
+
+      // Pobierz listę tasków z API
+      async function fetchTasks() {
+        try {
+          const res = await fetch("/tasks/");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          setTasks(await res.json());
+          setError(null);
+        } catch (e) {
+          setError("Błąd pobierania tasków: " + e.message);
+        }
+      }
+
+      // Dodaj nowy task
+      async function addTask(e) {
+        e.preventDefault();
+        if (!title.trim()) return;
+        setLoading(true);
+        try {
+          const res = await fetch("/tasks/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          setTitle("");
+          await fetchTasks();
+          setError(null);
+        } catch (e) {
+          setError("Błąd dodawania taska: " + e.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      useEffect(() => { fetchTasks(); }, []);
+
+      return (
+        <div>
+          <h1>Lista zadań</h1>
+
+          {error && <p className="error">{error}</p>}
+
+          <form onSubmit={addTask}>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Nowe zadanie..."
+            />
+            <button type="submit" disabled={loading}>Dodaj</button>
+          </form>
+
+          {tasks.length === 0
+            ? <p>Brak zadań.</p>
+            : (
+              <ul>
+                {tasks.map(t => (
+                  <li key={t.id}>
+                    <span>{t.title}</span>
+                    <span className="status">{t.status}</span>
+                  </li>
+                ))}
+              </ul>
+            )
+          }
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

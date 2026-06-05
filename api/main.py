@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 
 import redis as redis_lib
 from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 import database
@@ -41,6 +42,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Tasks API", version="1.0.0", lifespan=lifespan)
+
+# CORS — pozwala frontendowi na tasks.local odpytywać API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Rejestrujemy router z endpointami /tasks
 app.include_router(routes.router)
